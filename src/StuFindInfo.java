@@ -1,101 +1,167 @@
-
-import java.sql.*;
 import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
+import java.sql.*;
 
-public class StuFindInfo extends Jframe implements ActionListener {
-
-    JLabel jlnumber = new JLabel("学号:");
-    JLabel jlname = new JLabel("姓名:");
-    JLabel jlsex = new JLabel("性别:");
-    JLabel jlbirthday = new JLabel("出生日期:");
-    JLabel jldepartemnt = new JLabel("学院:");
-    JTextField jtnumber = new JTextField("", 20);
-    JTextField jtname = new JTextField("", 20);
-    JTextField jtsex = new JTextField();
-    JTextField jtbirthday = new JTextField();
-    JTextField jtdepartment = new JTextField();
-    JButton bfind = new JButton("查询");
-    JButton breturn = new JButton("返回");
-    Connection conn = null;
-    ResultSet rs = null;
-    PreparedStatement ps = null;
+public class StuFindInfo extends JFrame implements ActionListener {
+    // 组件声明
+    private JLabel jlnumber = new JLabel("学号:");
+    private JLabel jlname = new JLabel("姓名:");
+    private JLabel jlsex = new JLabel("性别:");
+    private JLabel jlbirthday = new JLabel("出生日期:");
+    private JLabel jldepartment = new JLabel("学院:");
+    
+    private JTextField jtnumber = new JTextField(20);
+    private JTextField jtname = new JTextField(20);
+    private JTextField jtsex = new JTextField(20);
+    private JTextField jtbirthday = new JTextField(20);
+    private JTextField jtdepartment = new JTextField(20);
+    
+    private JButton bfind = new JButton("查询");
+    private JButton breturn = new JButton("返回");
+    private JButton bclear = new JButton("清空");
 
     public StuFindInfo() {
-        this.setTitle("按学号或姓名查询学生信息");
-        this.setLayout(new GridLayout(6, 2));
-        this.add(jlnumber);
-        this.add(jtnumber);
-        this.add(jlname);
-        this.add(jtname);
-        this.add(jlsex);
-        this.add(jtsex);
-        this.add(jlbirthday);
-        this.add(jtbirthday);
-        this.add(jldepartment);
-        this.add(jtdepartment);
-        this.add(bfind);
-        this.add(breturn);
-        bfind.assActionListener(this);
+        // 窗口设置
+        this.setTitle("学生信息查询系统");
+        this.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        
+        // 主面板布局
+        JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        
+        // 输入面板
+        JPanel inputPanel = new JPanel(new GridLayout(5, 2, 5, 5));
+        inputPanel.add(jlnumber);
+        inputPanel.add(jtnumber);
+        inputPanel.add(jlname);
+        inputPanel.add(jtname);
+        inputPanel.add(jlsex);
+        inputPanel.add(jtsex);
+        inputPanel.add(jlbirthday);
+        inputPanel.add(jtbirthday);
+        inputPanel.add(jldepartment);
+        inputPanel.add(jtdepartment);
+        
+        // 按钮面板
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 5));
+        buttonPanel.add(bfind);
+        buttonPanel.add(bclear);
+        buttonPanel.add(breturn);
+        
+        // 禁用结果字段
+        jtsex.setEditable(false);
+        jtbirthday.setEditable(false);
+        jtdepartment.setEditable(false);
+        
+        // 添加事件监听
+        bfind.addActionListener(this);
         breturn.addActionListener(this);
-        //设置窗口大小
-        this.setSize(new Dimension(400, 250));
-        int windowWidth = this.getWidth();//获得窗口宽
-        int windowHeight = this.getHeight();//获得窗口高
-        Toolkit kit = Toolkit.getDefaultToolkit();//定义工具包
-        Dimension screenSize = kit.getScreenSize();//获取屏幕的尺寸
-        int screenWidth = screenSize.width;//获取屏幕的宽
-        int screenHeight = screenSize.height;//获取屏幕的高
-        //设置窗口居中
-        this.setLocation(screenWidth / 2 - windowWidth / 2, screenHeight / 2 - windowHeight / 2);
-        //设置窗口居中显示
+        bclear.addActionListener(this);
+        
+        // 添加组件到主面板
+        mainPanel.add(inputPanel, BorderLayout.CENTER);
+        mainPanel.add(buttonPanel, BorderLayout.SOUTH);
+        
+        this.add(mainPanel);
+        this.pack();
+        
+        // 窗口居中
+        setLocationRelativeTo(null);
         this.setVisible(true);
     }
 
+    @Override
     public void actionPerformed(ActionEvent e) {
-        Object obj = e.getSource();
-        if (obj.equals(bfind)) {
-            String xh = jtnumber.getText();
-            String xm = jtname.getText();
-            if (xh.length() == 0 && xm.length() == 0) {
-                JOptionPane.showMessageDialog(this, "学号或姓名不能为空", "学生信息管理系统", JOptionPane.INFORMATION_MESSAGE);
-                return;
-            }
-            String sql = "select * from xuesheng where xuehao = ? or xingming = ?;";
-            try {
-                Class.forName("com.mysql. jdbc.Driver");
-                conn = DriverManager.getConnection(
-                "jdbc:mysql://localhost:3308/student?
-                    useUnicode = true & characterEncoding = gbk","root
-                ","8888");
-                    ps = conn.prepareStatement(sql);
-                ps.setString(1, jtnumber.getText());
-                ps.setString(2, jtname.getText());
-                rs = ps.executeQuery();
-                while (rs.next()) {
-                    jtnumber.setText(rs.getString(1));
-                    jtname.setText(rs.getString(2));
-                    jtsex.setText(rs.getString(3));
-                    jtbirthday.setText(rs.getString(4));
-                    jtdepartment.setText(rs.getString(5));
-                }
-            } catch (ClassNotFoundException a) {
-                System.out.println("驱动程序不存在");
-                a.printStackTrace();
-            } catch (SQLException b) {
-                b.printStackTrace();
-            } finally {
-                try {
-                    conn.close();
-                } catch (SQLException c) {
-                    c.printStackTrace();
-                }
-            }
-        }
-        if (obj.equals(breturn)) {
+        Object source = e.getSource();
+        
+        if (source == bfind) {
+            findStudentInfo();
+        } 
+        else if (source == bclear) {
+            clearFields();
+        } 
+        else if (source == breturn) {
             this.dispose();
         }
     }
+    
+    private void findStudentInfo() {
+        String number = jtnumber.getText().trim();
+        String name = jtname.getText().trim();
+        
+        // 验证输入
+        if (number.isEmpty() && name.isEmpty()) {
+            JOptionPane.showMessageDialog(this, 
+                "请输入学号或姓名至少一项", 
+                "输入错误", 
+                JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        
+        Connection conn = null;
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+        
+        try {
+            // 获取数据库连接
+            conn = DatabaseUtil.getConnection();
+            
+            // 准备SQL查询
+            String sql = "SELECT * FROM xuesheng WHERE xuehao = ? OR xingming = ?";
+            pstmt = conn.prepareStatement(sql);
+            pstmt.setString(1, number);
+            pstmt.setString(2, name);
+            
+            // 执行查询
+            rs = pstmt.executeQuery();
+            
+            if (rs.next()) {
+                // 显示查询结果
+                jtnumber.setText(rs.getString("xuehao"));
+                jtname.setText(rs.getString("xingming"));
+                jtsex.setText(rs.getString("xingbie"));
+                jtbirthday.setText(rs.getString("chushengriqi"));
+                jtdepartment.setText(rs.getString("xueyuan"));
+            } else {
+                JOptionPane.showMessageDialog(this, 
+                    "未找到匹配的学生信息", 
+                    "查询结果", 
+                    JOptionPane.INFORMATION_MESSAGE);
+                clearResultFields();
+            }
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this, 
+                "数据库错误: " + ex.getMessage(), 
+                "系统错误", 
+                JOptionPane.ERROR_MESSAGE);
+            ex.printStackTrace();
+        } catch (ClassNotFoundException ex) {
+            JOptionPane.showMessageDialog(this, 
+                "数据库驱动加载失败", 
+                "系统错误", 
+                JOptionPane.ERROR_MESSAGE);
+            ex.printStackTrace();
+        } finally {
+            DatabaseUtil.close(conn, pstmt, rs);
+        }
+    }
+    
+    private void clearFields() {
+        jtnumber.setText("");
+        jtname.setText("");
+        clearResultFields();
+    }
+    
+    private void clearResultFields() {
+        jtsex.setText("");
+        jtbirthday.setText("");
+        jtdepartment.setText("");
+    }
 
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> {
+            new StuFindInfo();
+        });
+    }
 }

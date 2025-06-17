@@ -1,8 +1,7 @@
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.sql.*;
+import java.awt.event.*;
 import javax.swing.*;
+import java.sql.*;
 
 public class StuEditInfo extends JFrame implements ActionListener {
     JLabel jlnumber = new JLabel("学号:");
@@ -18,9 +17,6 @@ public class StuEditInfo extends JFrame implements ActionListener {
     JButton bfind = new JButton("查询");
     JButton bedit = new JButton("修改");
     JButton breturn = new JButton("返回");
-    Connection conn = null;
-    ResultSet rs = null;
-    PreparedStatement ps = null;
     
     public StuEditInfo() {
         this.setTitle("按学生学号或姓名查询并修改学生信息");
@@ -47,77 +43,60 @@ public class StuEditInfo extends JFrame implements ActionListener {
         bedit.addActionListener(this);
         breturn.addActionListener(this);
         
-        this.add(pnorth , BorderLayout.NORTH);
-        this.add(pcenter , BorderLayout.CENTER);
+        this.add(pnorth, BorderLayout.NORTH);
+        this.add(pcenter, BorderLayout.CENTER);
 
-        this.setSize(new Dimension(400,180));
-        int windowWidth = this.getWidth();
-        int windowHeight = this.getHeight();
+        this.setSize(400,180);
         Toolkit kit = Toolkit.getDefaultToolkit();
         Dimension screenSize = kit.getScreenSize();
-        int screenWidth = screenSize.width;
-        int screenHeight = screenSize.height;
-        this.setLocation(screenWidth/2-windowWidth/2 , screenHeight/2-windowHeight/2);
-        this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        this.setLocation(screenSize.width/2 - 200, screenSize.height/2 - 90);
+        this.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         this.setVisible(true);
     }
 
     public void actionPerformed(ActionEvent e) {
         Object obj = e.getSource();
-        String number = jtnumber.getText();
-        String name = jtname.getText();
-        String sex = jtsex.getText().trim();
-        String birthday = jtbirthday.getText();
-        String department = jtdepartment.getText();
+        Connection conn = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
         
-        if(number.length() == 0) {
-            JOptionPane.showMessageDialog(this, "学号必须输入正确", "学生信息管理系统", JOptionPane.INFORMATION_MESSAGE);
-            return;
-        }
-        
-        if(obj.equals(bfind)) {
-            String sql ="select * from xuesheng where xuehao = ? or xingming=?";
-            try {
-                Class.forName("com.mysql.cj.jdbc.Driver");
-                conn = DriverManager.getConnection(
-                    "jdbc:mysql://localhost:3308/student?useUnicode=true&characterEncoding=gbk",
-                    "root", "8888");
+        try {
+            if (obj.equals(bfind)) {
+                String number = jtnumber.getText();
+                String name = jtname.getText();
+                
+                if (number.isEmpty() && name.isEmpty()) {
+                    JOptionPane.showMessageDialog(this, "请输入学号或姓名");
+                    return;
+                }
+                
+                conn = DatabaseUtil.getConnection();
+                String sql = "select * from xuesheng where xuehao = ? or xingming = ?";
                 ps = conn.prepareStatement(sql);
-                ps.setString(1, jtnumber.getText());
-                ps.setString(2, jtname.getText());
+                ps.setString(1, number);
+                ps.setString(2, name);
                 rs = ps.executeQuery();
-                if(rs.next()) {
+                
+                if (rs.next()) {
                     jtnumber.setText(rs.getString(1));
                     jtname.setText(rs.getString(2));
                     jtsex.setText(rs.getString(3));
                     jtbirthday.setText(rs.getString(4));
                     jtdepartment.setText(rs.getString(5));
                 } else {
-                    JOptionPane.showMessageDialog(this, "未找到相关学生信息", "学生信息管理系统", JOptionPane.INFORMATION_MESSAGE);
+                    JOptionPane.showMessageDialog(this, "未找到相关学生信息");
                 }
-            } catch(ClassNotFoundException a) {
-                System.out.println("驱动程序不存在");
-                a.printStackTrace();
-            } catch(SQLException ex) {
-                ex.printStackTrace();
-            } finally {
-                try {
-                    if(rs != null) rs.close();
-                    if(ps != null) ps.close();
-                    if(conn != null) conn.close();
-                } catch(SQLException c) {
-                    c.printStackTrace();
+            }
+            
+            if (obj.equals(bedit)) {
+                String number = jtnumber.getText();
+                if (number.isEmpty()) {
+                    JOptionPane.showMessageDialog(this, "请先查询要修改的学生");
+                    return;
                 }
-            }        
-        }
-        
-        if(obj.equals(bedit)) {
-            String sql = "update xuesheng set xingming=?, xingbie=?, chushengriqi=?, xueyuan=? where xuehao=?";
-            try {
-                Class.forName("com.mysql.cj.jdbc.Driver");
-                conn = DriverManager.getConnection(
-                    "jdbc:mysql://localhost:3308/student?useUnicode=true&characterEncoding=gbk",
-                    "root", "8888");
+                
+                conn = DatabaseUtil.getConnection();
+                String sql = "update xuesheng set xingming=?, xingbie=?, chushengriqi=?, xueyuan=? where xuehao=?";
                 ps = conn.prepareStatement(sql);
                 ps.setString(1, jtname.getText());
                 ps.setString(2, jtsex.getText());
@@ -126,33 +105,21 @@ public class StuEditInfo extends JFrame implements ActionListener {
                 ps.setString(5, jtnumber.getText());
                 
                 int rows = ps.executeUpdate();
-                if(rows > 0) {
-                    JOptionPane.showMessageDialog(this, "学生信息修改成功", "学生信息管理系统", JOptionPane.INFORMATION_MESSAGE);
+                if (rows > 0) {
+                    JOptionPane.showMessageDialog(this, "修改成功");
                 } else {
-                    JOptionPane.showMessageDialog(this, "学生信息修改失败", "学生信息管理系统", JOptionPane.ERROR_MESSAGE);
-                }
-            } catch(ClassNotFoundException a) {
-                System.out.println("驱动程序不存在");
-                a.printStackTrace();
-            } catch(SQLException ex) {
-                ex.printStackTrace();
-            } finally {
-                try {
-                    if(rs != null) rs.close();
-                    if(ps != null) ps.close();
-                    if(conn != null) conn.close();
-                } catch(SQLException c) {
-                    c.printStackTrace();
+                    JOptionPane.showMessageDialog(this, "修改失败");
                 }
             }
+        } catch(Exception ex) {
+            JOptionPane.showMessageDialog(this, "操作失败: " + ex.getMessage());
+            ex.printStackTrace();
+        } finally {
+            DatabaseUtil.close(conn, ps, rs);
         }
         
-        if(obj.equals(breturn)) {
+        if (obj.equals(breturn)) {
             this.dispose();
         }
-    }
-    
-    public static void main(String[] args) {
-        new StuEditInfo();
     }
 }
