@@ -21,9 +21,11 @@ java -cp .;mysql-connector-j-8.1.0.jar MainFrame
 
 1.需要在`DatabaseUtil.java`中修改对应的端口号，账户和密码
 
-![image-20250618085310995](X:\Java-Project\Student Information System\1\image-20250618085310995.png)
+![修改位置](1/image-20250618085310995.png)
 
-2.本地mysql中需要有`student`的数据库和`xuesheng`的表
+
+
+2.本地mysql中需要有`student`的数据库和`xuesheng`的表 
 
 > 如果没有请创建
 >
