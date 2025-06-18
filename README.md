@@ -17,3 +17,34 @@ javac -cp .;mysql-connector-j-8.1.0.jar *.java
 java -cp .;mysql-connector-j-8.1.0.jar MainFrame
 ```
 
+## 前置条件：
+
+1.需要在`DatabaseUtil.java`中修改对应的端口号，账户和密码
+
+![image-20250618085310995](C:\Users\ROG\AppData\Roaming\Typora\typora-user-images\image-20250618085310995.png)
+
+2.本地mysql中需要有`student`的数据库和`xuesheng`的表
+
+> 如果没有请创建
+>
+> 1.创建`student`数据库：
+>
+> ```sql
+> CREATE DATABASE student CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+> ```
+>
+> 2.创建`xuesheng`表
+>
+> ```sql
+> USE student;
+> 
+> CREATE TABLE xuesheng (
+>     xuehao VARCHAR(20) PRIMARY KEY,
+>     xingming VARCHAR(50) NOT NULL,
+>     xingbie VARCHAR(10),
+>     chushengriqi VARCHAR(20),
+>     xueyuan VARCHAR(50)
+> );
+> ```
+>
+> 
