@@ -1,12 +1,14 @@
 import java.sql.*;
 
 public class DatabaseUtil {
-    private static final String URL = "jdbc:mysql://localhost:3306/student?useUnicode=true&characterEncoding=utf8";
+    // MySQL 8.0+ 的推荐URL格式（需指定时区）
+    private static final String URL = "jdbc:mysql://localhost:3306/student?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
     private static final String USER = "root";
-    private static final String PASSWORD = "Wy050818";
+    private static final String PASSWORD = "Wy050818"; // 替换为你的密码
     
     public static Connection getConnection() throws SQLException, ClassNotFoundException {
-        Class.forName("com.mysql.jdbc.Driver");
+        // MySQL 8.0+ 驱动类名
+        Class.forName("com.mysql.cj.jdbc.Driver");
         return DriverManager.getConnection(URL, USER, PASSWORD);
     }
     
