@@ -2,6 +2,7 @@ import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
 import java.sql.*;
+import javax.swing.table.DefaultTableModel;
 
 public class StuFindInfo extends JFrame implements ActionListener {
     // 组件声明
@@ -20,10 +21,16 @@ public class StuFindInfo extends JFrame implements ActionListener {
     private JButton bfind = new JButton("查询");
     private JButton breturn = new JButton("返回");
     private JButton bclear = new JButton("清空");
+    
+    // 新增成绩表格组件
+    private JTable scoreTable;
+    private JScrollPane scoreScrollPane;
+    private final String[] scoreColumns = {"语文", "高数", "英语", "Java", "Go", "Linux", "双创", "思政", "实训"};
+    private DefaultTableModel scoreModel;
 
     public StuFindInfo() {
         // 窗口设置
-        this.setTitle("学生信息查询系统");
+        this.setTitle("学生信息与成绩查询系统");
         this.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         
         // 主面板布局
@@ -54,14 +61,28 @@ public class StuFindInfo extends JFrame implements ActionListener {
         jtbirthday.setEditable(false);
         jtdepartment.setEditable(false);
         
+        // 创建成绩显示区域
+        JPanel scorePanel = new JPanel(new BorderLayout(5, 5));
+        scorePanel.setBorder(BorderFactory.createTitledBorder("成绩信息"));
+        scoreModel = new DefaultTableModel(null, scoreColumns) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false; // 使表格不可编辑
+            }
+        };
+        scoreTable = new JTable(scoreModel);
+        scoreScrollPane = new JScrollPane(scoreTable);
+        scorePanel.add(scoreScrollPane, BorderLayout.CENTER);
+        
         // 添加事件监听
         bfind.addActionListener(this);
         breturn.addActionListener(this);
         bclear.addActionListener(this);
         
         // 添加组件到主面板
-        mainPanel.add(inputPanel, BorderLayout.CENTER);
-        mainPanel.add(buttonPanel, BorderLayout.SOUTH);
+        mainPanel.add(inputPanel, BorderLayout.NORTH);
+        mainPanel.add(buttonPanel, BorderLayout.CENTER);
+        mainPanel.add(scorePanel, BorderLayout.SOUTH);
         
         this.add(mainPanel);
         this.pack();
@@ -79,7 +100,7 @@ public class StuFindInfo extends JFrame implements ActionListener {
             findStudentInfo();
         } 
         else if (source == bclear) {
-            clearFields();
+            clearAllFields();
         } 
         else if (source == breturn) {
             this.dispose();
@@ -107,7 +128,7 @@ public class StuFindInfo extends JFrame implements ActionListener {
             // 获取数据库连接
             conn = DatabaseUtil.getConnection();
             
-            // 准备SQL查询
+            // 准备SQL查询学生基本信息
             String sql = "SELECT * FROM xuesheng WHERE xuehao = ? OR xingming = ?";
             pstmt = conn.prepareStatement(sql);
             pstmt.setString(1, number);
@@ -118,17 +139,21 @@ public class StuFindInfo extends JFrame implements ActionListener {
             
             if (rs.next()) {
                 // 显示查询结果
-                jtnumber.setText(rs.getString("xuehao"));
+                String studentId = rs.getString("xuehao");
+                jtnumber.setText(studentId);
                 jtname.setText(rs.getString("xingming"));
                 jtsex.setText(rs.getString("xingbie"));
                 jtbirthday.setText(rs.getString("chushengriqi"));
                 jtdepartment.setText(rs.getString("xueyuan"));
+                
+                // 查询该学生的成绩
+                loadStudentScores(studentId);
             } else {
                 JOptionPane.showMessageDialog(this, 
                     "未找到匹配的学生信息", 
                     "查询结果", 
                     JOptionPane.INFORMATION_MESSAGE);
-                clearResultFields();
+                clearAllFields();
             }
         } catch (SQLException ex) {
             JOptionPane.showMessageDialog(this, 
@@ -147,16 +172,70 @@ public class StuFindInfo extends JFrame implements ActionListener {
         }
     }
     
-    private void clearFields() {
-        jtnumber.setText("");
-        jtname.setText("");
-        clearResultFields();
+    private void loadStudentScores(String studentId) {
+        Connection conn = null;
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+        
+        try {
+            conn = DatabaseUtil.getConnection();
+            
+            // 查询成绩信息
+            // 特别注意：使用反引号包裹中文字段名（MySQL语法）
+            String scoreSql = "SELECT `语文`, `高数`, `英语`, `Java`, `Go`, `Linux`, `双创`, `思政`, `实训` " +
+                             "FROM scores WHERE student_id = ?";
+            pstmt = conn.prepareStatement(scoreSql);
+            pstmt.setString(1, studentId);
+            rs = pstmt.executeQuery();
+            
+            // 初始化模型
+            scoreModel.setRowCount(0);
+            
+            if (rs.next()) {
+                // 创建单行数据
+                Object[] rowData = new Object[scoreColumns.length];
+                
+                // 读取各科目成绩
+                for (int i = 0; i < scoreColumns.length; i++) {
+                    Object value = rs.getObject(scoreColumns[i]);
+                    rowData[i] = (value != null) ? String.format("%.1f", rs.getFloat(scoreColumns[i])) : "无";
+                }
+                
+                // 添加到表格
+                scoreModel.addRow(rowData);
+            } else {
+                JOptionPane.showMessageDialog(this, 
+                    "该学生暂无成绩记录", 
+                    "成绩查询", 
+                    JOptionPane.INFORMATION_MESSAGE);
+            }
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this, 
+                "成绩查询失败: " + ex.getMessage(), 
+                "数据库错误", 
+                JOptionPane.ERROR_MESSAGE);
+            ex.printStackTrace();
+        } catch (ClassNotFoundException ex) {
+            JOptionPane.showMessageDialog(this, 
+                "数据库驱动加载失败", 
+                "系统错误", 
+                JOptionPane.ERROR_MESSAGE);
+            ex.printStackTrace();
+        } finally {
+            DatabaseUtil.close(conn, pstmt, rs);
+        }
     }
     
-    private void clearResultFields() {
+    private void clearAllFields() {
+        // 清空基本信息字段
+        jtnumber.setText("");
+        jtname.setText("");
         jtsex.setText("");
         jtbirthday.setText("");
         jtdepartment.setText("");
+        
+        // 清空成绩表
+        scoreModel.setRowCount(0);
     }
 
     public static void main(String[] args) {
