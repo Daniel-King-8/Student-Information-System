@@ -2,124 +2,351 @@ import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
 import java.sql.*;
+import java.time.LocalDate;
+import java.time.DateTimeException;
 
 public class StuEditInfo extends JFrame implements ActionListener {
-    JLabel jlnumber = new JLabel("学号:");
-    JLabel jlname = new JLabel("姓名:");
-    JLabel jlsex = new JLabel("性别:");  
-    JLabel jlbirthday = new JLabel("出生日期:");
-    JLabel jldepartment = new JLabel("学院:");
-    JTextField jtnumber = new JTextField("",20);
-    JTextField jtname = new JTextField("",20);
-    JTextField jtsex = new JTextField("",20);
-    JTextField jtbirthday = new JTextField("",20);
-    JTextField jtdepartment = new JTextField("",20);
-    JButton bfind = new JButton("查询");
-    JButton bedit = new JButton("修改");
-    JButton breturn = new JButton("返回");
+    private JLabel lblNumber = new JLabel("学号:");
+    private JLabel lblName = new JLabel("姓名:");
+    private JLabel lblSex = new JLabel("性别:");
+    private JLabel lblBirthYear = new JLabel("出生年份:");
+    private JLabel lblBirthMonth = new JLabel("月份:");
+    private JLabel lblBirthDay = new JLabel("日期:");
+    private JLabel lblDepartment = new JLabel("学院:");
     
-    public StuEditInfo() {
-        this.setTitle("按学生学号或姓名查询并修改学生信息");
-        JPanel pnorth = new JPanel();
-        pnorth.setLayout(new GridLayout(5,2));
-        pnorth.add(jlnumber);
-        pnorth.add(jtnumber);
-        pnorth.add(jlname);
-        pnorth.add(jtname);
-        pnorth.add(jlsex);
-        pnorth.add(jtsex);
-        pnorth.add(jlbirthday);
-        pnorth.add(jtbirthday);
-        pnorth.add(jldepartment);
-        pnorth.add(jtdepartment);
-        
-        JPanel pcenter = new JPanel();
-        pcenter.setLayout(new GridLayout(1,3));
-        pcenter.add(bfind);
-        pcenter.add(bedit);
-        pcenter.add(breturn);
-        
-        bfind.addActionListener(this);
-        bedit.addActionListener(this);
-        breturn.addActionListener(this);
-        
-        this.add(pnorth, BorderLayout.NORTH);
-        this.add(pcenter, BorderLayout.CENTER);
+    private JTextField txtNumber = new JTextField(20);
+    private JTextField txtName = new JTextField(20);
+    private JTextField txtSex = new JTextField(20);
+    
+    private JTextField txtBirthYear = new JTextField(4);
+    private JTextField txtBirthMonth = new JTextField(2);
+    private JTextField txtBirthDay = new JTextField(2);
+    
+    private JTextField txtDepartment = new JTextField(20);
+    
+    private JButton btnFind = new JButton("查找");
+    private JButton btnSave = new JButton("保存");
+    private JButton btnReturn = new JButton("返回");
+    
+    private String originalStudentId;
+    private String originalDepartment;
 
-        this.setSize(400,180);
-        Toolkit kit = Toolkit.getDefaultToolkit();
-        Dimension screenSize = kit.getScreenSize();
-        this.setLocation(screenSize.width/2 - 200, screenSize.height/2 - 90);
-        this.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        this.setVisible(true);
+    public StuEditInfo() {
+        setTitle("编辑学生信息");
+        setLayout(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(8, 12, 8, 12);
+        gbc.anchor = GridBagConstraints.WEST;
+        
+        // 输入区域
+        gbc.gridx = 0; gbc.gridy = 0;
+        add(lblNumber, gbc);
+        
+        gbc.gridx = 1;
+        JPanel pnlNumber = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
+        pnlNumber.add(txtNumber);
+        pnlNumber.add(btnFind);
+        add(pnlNumber, gbc);
+        
+        gbc.gridx = 0; gbc.gridy = 1;
+        add(lblName, gbc);
+        
+        gbc.gridx = 1;
+        add(txtName, gbc);
+        
+        gbc.gridx = 0; gbc.gridy = 2;
+        add(lblSex, gbc);
+        
+        gbc.gridx = 1;
+        txtSex.setEditable(false);
+        add(txtSex, gbc);
+        
+        gbc.gridx = 0; gbc.gridy = 3;
+        add(lblBirthYear, gbc);
+        
+        gbc.gridx = 1;
+        JPanel pnlBirthday = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
+        pnlBirthday.add(txtBirthYear);
+        pnlBirthday.add(lblBirthMonth);
+        pnlBirthday.add(txtBirthMonth);
+        pnlBirthday.add(lblBirthDay);
+        pnlBirthday.add(txtBirthDay);
+        add(pnlBirthday, gbc);
+        
+        addInputLimiter(txtBirthYear, 4);
+        addInputLimiter(txtBirthMonth, 2);
+        addInputLimiter(txtBirthDay, 2);
+        
+        gbc.gridx = 0; gbc.gridy = 4;
+        add(lblDepartment, gbc);
+        
+        gbc.gridx = 1;
+        add(txtDepartment, gbc);
+        
+        gbc.gridx = 0; gbc.gridy = 5;
+        gbc.gridwidth = 2;
+        gbc.anchor = GridBagConstraints.CENTER;
+        JPanel pnlButtons = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 10));
+        pnlButtons.add(btnSave);
+        pnlButtons.add(btnReturn);
+        add(pnlButtons, gbc);
+        
+        btnFind.addActionListener(this);
+        btnSave.addActionListener(this);
+        btnReturn.addActionListener(this);
+        btnSave.setEnabled(false);
+        
+        setSize(500, 350);
+        setLocationRelativeTo(null);
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        setVisible(true);
     }
 
+    private void addInputLimiter(JTextField field, int maxLength) {
+        field.addKeyListener(new KeyAdapter() {
+            public void keyTyped(KeyEvent e) {
+                if (field.getText().length() >= maxLength) {
+                    e.consume();
+                }
+                char c = e.getKeyChar();
+                if (!Character.isDigit(c)) {
+                    e.consume();
+                }
+            }
+        });
+    }
+
+    @Override
     public void actionPerformed(ActionEvent e) {
-        Object obj = e.getSource();
+        if (e.getSource() == btnReturn) {
+            dispose();
+        }
+        else if (e.getSource() == btnFind) {
+            findStudent();
+        }
+        else if (e.getSource() == btnSave) {
+            saveChanges();
+        }
+    }
+    
+    private void findStudent() {
+        String number = txtNumber.getText().trim();
+        String name = txtName.getText().trim();
+        String department = txtDepartment.getText().trim();
+        
+        if (number.isEmpty() && name.isEmpty() && department.isEmpty()) {
+            JOptionPane.showMessageDialog(this, 
+                "请至少输入一项查找条件", 
+                "输入错误", 
+                JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        
         Connection conn = null;
-        PreparedStatement ps = null;
+        PreparedStatement pstmt = null;
         ResultSet rs = null;
         
         try {
-            if (obj.equals(bfind)) {
-                String number = jtnumber.getText();
-                String name = jtname.getText();
-                
-                if (number.isEmpty() && name.isEmpty()) {
-                    JOptionPane.showMessageDialog(this, "请输入学号或姓名");
+            conn = DatabaseUtil.getConnection();
+            
+            StringBuilder sqlSb = new StringBuilder("SELECT * FROM xuesheng WHERE 1=1");
+            if (!number.isEmpty()) sqlSb.append(" AND xuehao = ?");
+            if (!name.isEmpty()) sqlSb.append(" AND xingming = ?");
+            if (!department.isEmpty()) sqlSb.append(" AND xueyuan = ?");
+            
+            pstmt = conn.prepareStatement(sqlSb.toString());
+            int paramIndex = 1;
+            if (!number.isEmpty()) pstmt.setString(paramIndex++, number);
+            if (!name.isEmpty()) pstmt.setString(paramIndex++, name);
+            if (!department.isEmpty()) pstmt.setString(paramIndex, department);
+            
+            rs = pstmt.executeQuery();
+            
+            if (rs.next()) {
+                String dbDept = rs.getString("xueyuan");
+                // 检查学院是否匹配（关键修正）
+                if (!department.isEmpty() && !dbDept.equals(department)) {
+                    JOptionPane.showMessageDialog(this, 
+                        "姓名和学院不匹配", 
+                        "查询冲突", 
+                        JOptionPane.WARNING_MESSAGE);
+                    clearFields();
                     return;
                 }
                 
-                conn = DatabaseUtil.getConnection();
-                String sql = "select * from xuesheng where xuehao = ? or xingming = ?";
-                ps = conn.prepareStatement(sql);
-                ps.setString(1, number);
-                ps.setString(2, name);
-                rs = ps.executeQuery();
+                originalStudentId = rs.getString("xuehao");
+                originalDepartment = dbDept;
+                
+                txtNumber.setText(originalStudentId);
+                txtName.setText(rs.getString("xingming"));
+                txtSex.setText(rs.getString("xingbie"));
+                txtDepartment.setText(originalDepartment);
+                
+                java.sql.Date birthday = rs.getDate("chushengriqi");
+                LocalDate birthDate = birthday.toLocalDate();
+                txtBirthYear.setText(String.valueOf(birthDate.getYear()));
+                txtBirthMonth.setText(String.valueOf(birthDate.getMonthValue()));
+                txtBirthDay.setText(String.valueOf(birthDate.getDayOfMonth()));
+                
+                btnSave.setEnabled(true);
                 
                 if (rs.next()) {
-                    jtnumber.setText(rs.getString(1));
-                    jtname.setText(rs.getString(2));
-                    jtsex.setText(rs.getString(3));
-                    jtbirthday.setText(rs.getString(4));
-                    jtdepartment.setText(rs.getString(5));
-                } else {
-                    JOptionPane.showMessageDialog(this, "未找到相关学生信息");
+                    JOptionPane.showMessageDialog(this, 
+                        "找到多个匹配学生，请提供更多查询条件", 
+                        "查询结果", 
+                        JOptionPane.WARNING_MESSAGE);
                 }
+            } else {
+                JOptionPane.showMessageDialog(this, 
+                    "未找到匹配的学生", 
+                    "查询结果", 
+                    JOptionPane.INFORMATION_MESSAGE);
+                clearFields();
             }
-            
-            if (obj.equals(bedit)) {
-                String number = jtnumber.getText();
-                if (number.isEmpty()) {
-                    JOptionPane.showMessageDialog(this, "请先查询要修改的学生");
-                    return;
-                }
-                
-                conn = DatabaseUtil.getConnection();
-                String sql = "update xuesheng set xingming=?, xingbie=?, chushengriqi=?, xueyuan=? where xuehao=?";
-                ps = conn.prepareStatement(sql);
-                ps.setString(1, jtname.getText());
-                ps.setString(2, jtsex.getText());
-                ps.setString(3, jtbirthday.getText());
-                ps.setString(4, jtdepartment.getText());
-                ps.setString(5, jtnumber.getText());
-                
-                int rows = ps.executeUpdate();
-                if (rows > 0) {
-                    JOptionPane.showMessageDialog(this, "修改成功");
-                } else {
-                    JOptionPane.showMessageDialog(this, "修改失败");
-                }
-            }
-        } catch(Exception ex) {
-            JOptionPane.showMessageDialog(this, "操作失败: " + ex.getMessage());
-            ex.printStackTrace();
+        } catch (SQLException ex) {
+            showError("数据库错误", ex);
+        } catch (ClassNotFoundException ex) {
+            showError("数据库驱动错误", ex);
         } finally {
-            DatabaseUtil.close(conn, ps, rs);
+            DatabaseUtil.close(conn, pstmt, rs);
+        }
+    }
+    
+    private void saveChanges() {
+        String number = txtNumber.getText().trim();
+        String name = txtName.getText().trim();
+        String sex = txtSex.getText().trim();
+        String year = txtBirthYear.getText().trim();
+        String month = txtBirthMonth.getText().trim();
+        String day = txtBirthDay.getText().trim();
+        String department = txtDepartment.getText().trim();
+        
+        if (number.isEmpty() || name.isEmpty() || department.isEmpty() || 
+            year.isEmpty() || month.isEmpty() || day.isEmpty()) {
+            JOptionPane.showMessageDialog(this, 
+                "所有字段都必须填写", 
+                "输入不完整", 
+                JOptionPane.WARNING_MESSAGE);
+            return;
         }
         
-        if (obj.equals(breturn)) {
-            this.dispose();
+        if (!isValidDate(year, month, day)) {
+            JOptionPane.showMessageDialog(this, 
+                "出生日期格式不正确", 
+                "输入错误", 
+                JOptionPane.ERROR_MESSAGE);
+            return;
         }
+        
+        java.sql.Date birthDate = createSqlDate(year, month, day);
+        if (birthDate == null) {
+            JOptionPane.showMessageDialog(this, 
+                "无效的出生日期", 
+                "日期错误", 
+                JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        
+        Connection conn = null;
+        PreparedStatement pstmt = null;
+        try {
+            conn = DatabaseUtil.getConnection();
+            
+            String sql = "UPDATE xuesheng SET " +
+                         "xuehao = ?, " +
+                         "xingming = ?, " +
+                         "xingbie = ?, " +
+                         "chushengriqi = ?, " +
+                         "xueyuan = ? " +
+                         "WHERE xuehao = ? AND xueyuan = ?";
+            
+            pstmt = conn.prepareStatement(sql);
+            pstmt.setString(1, number);
+            pstmt.setString(2, name);
+            pstmt.setString(3, sex);
+            pstmt.setDate(4, birthDate);
+            pstmt.setString(5, department);
+            pstmt.setString(6, originalStudentId);
+            pstmt.setString(7, originalDepartment);
+            
+            int rowsAffected = pstmt.executeUpdate();
+            if (rowsAffected > 0) {
+                JOptionPane.showMessageDialog(this, 
+                    "学生信息更新成功", 
+                    "操作成功", 
+                    JOptionPane.INFORMATION_MESSAGE);
+                
+                originalStudentId = number;
+                originalDepartment = department;
+            } else {
+                JOptionPane.showMessageDialog(this, 
+                    "没有找到匹配的学生记录或数据未更改", 
+                    "更新失败", 
+                    JOptionPane.WARNING_MESSAGE);
+            }
+        } catch (SQLIntegrityConstraintViolationException ex) {
+            if (ex.getErrorCode() == 1062) {
+                JOptionPane.showMessageDialog(this, 
+                    "该学号在本学院已存在: [" + number + "]", 
+                    "学号冲突", 
+                    JOptionPane.ERROR_MESSAGE);
+            } else {
+                showError("数据库约束错误", ex);
+            }
+        } catch (SQLException ex) {
+            showError("数据库错误", ex);
+        } catch (ClassNotFoundException ex) {
+            showError("数据库驱动错误", ex);
+        } finally {
+            DatabaseUtil.close(conn, pstmt, null);
+        }
+    }
+    
+    private boolean isValidDate(String yearStr, String monthStr, String dayStr) {
+        try {
+            int year = Integer.parseInt(yearStr);
+            int month = Integer.parseInt(monthStr);
+            int day = Integer.parseInt(dayStr);
+            LocalDate.of(year, month, day);
+            return true;
+        } catch (NumberFormatException | DateTimeException e) {
+            return false;
+        }
+    }
+    
+    private java.sql.Date createSqlDate(String yearStr, String monthStr, String dayStr) {
+        try {
+            int year = Integer.parseInt(yearStr);
+            int month = Integer.parseInt(monthStr);
+            int day = Integer.parseInt(dayStr);
+            String dateStr = String.format("%04d-%02d-%02d", year, month, day);
+            return java.sql.Date.valueOf(dateStr);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+    
+    private void clearFields() {
+        txtNumber.setText("");
+        txtName.setText("");
+        txtSex.setText("");
+        txtBirthYear.setText("");
+        txtBirthMonth.setText("");
+        txtBirthDay.setText("");
+        txtDepartment.setText("");
+        btnSave.setEnabled(false);
+    }
+    
+    private void showError(String title, Exception ex) {
+        String errorMsg = title + ": " + ex.getMessage();
+        if (ex instanceof SQLException) {
+            errorMsg += "\nSQL状态: " + ((SQLException) ex).getSQLState();
+        }
+        JOptionPane.showMessageDialog(this, errorMsg, "系统错误", JOptionPane.ERROR_MESSAGE);
+        ex.printStackTrace();
+    }
+    
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(StuEditInfo::new);
     }
 }
